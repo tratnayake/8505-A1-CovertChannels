@@ -79,6 +79,26 @@ function forgePacket(messageArray){
 	})
 }
 
+function sendPacket(packetData,target) {
+	return new Promise(function(resolve,reject){
+		console.log("Inside sending packet");
+
+
+			socket.send (packetData, 0, packetData.length, target, beforeSend, function (error, bytes) {
+				if (error) {
+					reject(error.toString ());
+				} else {
+					console.log("Done");
+					resolve("test");
+					resolve("sent " + bytes + " bytes to " + target);
+					console.log("2");
+				}
+			});
+
+	})
+}
+
+
 function beforeSend () {
     socket.setOption (socketLevel, socketOption, 58);
 }
@@ -94,19 +114,24 @@ function afterSend (error, bytes) {
 
 function sendPackets(packetArray){
 	return new Promise(function(resolve,reject){
-		console.log("Inside sending packets!")
+		console.log("Inside sending packets!");
+		var promises = [];
 		for (var i = 0; i < packetArray.length; i++) {
+			var promise = sendPacket(packetArray[i],target);
 			
-			socket.send (packetArray[i], 0, packetArray[i].length, target, beforeSend, afterSend, function (error, bytes) {
-				if (error) {
-					console.log (error.toString ());
-				} else {
-					console.log ("sent " + bytes + " bytes to " + target);
-				}
-			});
+			 promises.push(promise);
+
 		};
+		console.log("here");
+		console.log(promises.length);
+		Promise.all(promises)
+       .then(console.log)
+       .catch(
+       	function(reason){
+       		console.log("ERROR: " + reason);
+       	})
 	})
-	console.log("Finished sending");
+	
 }
 /**
 Mode 1: Heartbeats.
