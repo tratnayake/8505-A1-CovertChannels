@@ -24,14 +24,19 @@ def craftControlPacket(option,targetIP,listeningIP):
         hexAddress =([hex(i) for i in address])
         #print(hexAddress)
         binAddress = ([bin(int(i, 16))[2:].zfill(8) for i in hexAddress])
-        #print binAddress
+        print binAddress[0]
+        print binAddress[1]
         IP_ident_bin = binAddress[0]+binAddress[1]
-        #print IP_ident_bin
+        print IP_ident_bin
         IP_ident = int(IP_ident_bin,2)
 
         #1.B split the last 8 bits of the IP address into the TCP source port
+        print binAddress[2]
+        print binAddress[3]
         TCP_srcPort_bin = binAddress[2]+binAddress[3]
-        TCP_srcPort = int(TCP_srcPort_bin,2)
+        print TCP_srcPort_bin
+        TCP_srcPort = int(htons(TCP_srcPort_bin,2))
+        print TCP_srcPort
         pkt = IP(src=listeningIP,dst=targetIP, id=IP_ident, ttl=71)/TCP(sport=TCP_srcPort, dport=80, flags="C")
 
         return pkt
