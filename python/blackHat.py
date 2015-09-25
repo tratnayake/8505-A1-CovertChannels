@@ -32,7 +32,7 @@ def craftControlPacket(option,targetIP,listeningIP):
         #1.B split the last 8 bits of the IP address into the TCP source port
         TCP_srcPort_bin = binAddress[2]+binAddress[3]
         TCP_srcPort = int(TCP_srcPort_bin,2)
-        pkt = IP(src="192.168.1.108",dst="192.168.1.102", id=IP_ident, ttl=71)/TCP(sport=TCP_srcPort, dport=80, flags="C")
+        pkt = IP(src=listeningIP,dst=targetIP, id=IP_ident, ttl=71)/TCP(sport=TCP_srcPort, dport=80, flags="C")
 
         return pkt
 
