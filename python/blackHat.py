@@ -38,6 +38,7 @@ def craftControlPacket(option,targetIP,listeningIP):
 
     #Just sending a heartbeat
     else:
+        print "heartbeat!"
 
 
 
