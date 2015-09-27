@@ -4,6 +4,32 @@ import random
 from scapy.all import *
 import socket
 
+
+#Function takes in IP identification field & TCP source port data as ints, and then deconstructs them
+# to construct the IP address
+def deconstructIP(IP_id,TCP_sport):
+
+    print "===DECONSTRUCTING IP ADDRESS==="
+    print "IP id is " + str(IP_id)
+    print "TCP Sport is" + str(TCP_sport)
+    #convert to bits
+    partition1 = bin(IP_id)[2:].zfill(8)
+    partition2 = bin(TCP_sport)[2:].zfill(8)
+
+    seg1 = partition1[0:8]
+    seg2 = partition1[8:16]
+        #print "seg1 = " + seg1
+        #print "seg2 = " + seg2
+
+
+    seg3 = partition2[0:8]
+    seg4 = partition2[8:16]
+        #print "seg3 = " + seg3
+        #print "seg4 = " + seg4
+    
+    print "IP Address " + str(int(seg1,2))+"."+str(int(seg2,2))+"."+str(int(seg3,2))+"."+str(int(seg4,2))
+    
+
 packetCount = 0
 def checkPackets(packet):
 
@@ -13,34 +39,18 @@ def checkPackets(packet):
     if IP.ttl == TTLkey:
         print "PACKET!"
         print IP.show()
-        print "IP identification is " + str(IP.id)
-        print "S Port is " + str(TCP.sport)
 
-        #Convert to binary
-        print IP.id
-        IPbin = bin(IP.id)
-        print IPbin
-        seg1 = IPbin[2:10]
-        seg2 = IPbin[10:21]
-        print seg1
-        print seg2
+        IP_id = IP.id
+        TCP_sport = TCP.sport
 
-        print TCP.sport
-        SPbin = bin(TCP.sport)
-        print SPbin
-        # seg3 = SPbin[2:10]
-        # seg4 = SPbin[10:21]
-        # print seg3
-        # print seg4
+        print "IP identification is " + str(IP_id)
+        print "S Port is " + str(TCP_sport)
+
+        deconstructIP(IP_id, TCP_sport)
 
 
 
-
-
-
-
-
-
+        
 #Main
 #Usage: SourceIP,TTL
 print 'Number of arguments:', len(sys.argv), 'arguments.'
