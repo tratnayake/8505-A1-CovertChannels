@@ -28,10 +28,10 @@ def deconstructIP(IP_id,TCP_sport):
     if len(partition1) < 16:
         partition1 = padPartition(partition1)
     if len(partition2) < 16:
-        partition2 = padPartition(partition2) 
-        
-      
-        
+        partition2 = padPartition(partition2)
+
+
+
 
     print len(partition1)
     print len(partition2)
@@ -46,9 +46,9 @@ def deconstructIP(IP_id,TCP_sport):
     seg4 = partition2[8:16]
         #print "seg3 = " + seg3
         #print "seg4 = " + seg4
-    
+
     print "IP Address " + str(int(seg1,2))+"."+str(int(seg2,2))+"."+str(int(seg3,2))+"."+str(int(seg4,2))
-    
+
 
 #If a partition is less than 16 bits (e.g. x.x.0.11 would only show up at as 101100001011), pad with necessary 0s
 def padPartition(partition):
@@ -67,7 +67,7 @@ def craftControlPacket(option,targetIP,listeningIP,spoofedIP, TTLkey):
     #convert those bits to integers
     address  = ([ord(i) for i in bits_listIP])
         #DEBUG: print(address)
-    
+
     #1.b Convert integers into uint8
     bin_listIP = ([bin(i)[2:].zfill(8) for i in address]);
         #DEBUG: print(bin_listIP)
@@ -75,16 +75,16 @@ def craftControlPacket(option,targetIP,listeningIP,spoofedIP, TTLkey):
     #1.c Split into IP Identification field data
     # &  TCP Sport data.
     partition1 = bin_listIP[0] + bin_listIP[1]
-    partition2 = bin_listIP[2] + bin_listIP[3]  
+    partition2 = bin_listIP[2] + bin_listIP[3]
     print partition1
     print partition2
 
-    #1.d Convert the uint8 bits going to each field 
+    #1.d Convert the uint8 bits going to each field
     # into integers as expected by Scapy API
     IP_id = int(partition1,2)
     print "IP ID is " + str(IP_id)
         #DEBUG: print partition2
-    
+
     TCP_sport = int(partition2,2)
     print "TCP Sport is " + str(TCP_sport)
 
@@ -97,6 +97,28 @@ def craftControlPacket(option,targetIP,listeningIP,spoofedIP, TTLkey):
     return pkt
 
 
+def server(packet):
+    # print len(packet)
+    print packet.show();
+    # print "BOUNDARY \n"
+    # print packet[0].show()
+    # print "BOUNDARY \n"
+    #ICMPpacket = packet[1].show()
+
+    if hasattr(packet.payload, "src"):
+        print "TRUE!"
+        print str(packet.payload.src)
+        ICMPdata = packet.getlayer(Raw)
+        print "Message: " + str(ICMPdata) + " from SRC: " + str(packet.payload.src)
+
+        #send a reply blackhat
+        send(IP(dst=str(packet.payload.src),src=str(packet.payload.dst))/ICMP(type=0, seq=1)/"HANDSHAKESUCCESS![1]")
+
+        print "Handshake reply sent"
+
+
+    else:
+        print "NO TCP SOURCE ?!"
 
 # Main
 print 'Number of arguments:', len(sys.argv), 'arguments.'
@@ -115,5 +137,6 @@ TTLkey = int(sys.argv[5])
 
 if option == "1":
     send(craftControlPacket(option, targetIP, listeningIP, spoofedIP, TTLkey));
+    sniff(filter="host 192.168.0.18 and icmp[0]=8", prn=server)
 else:
     print "Something else"
