@@ -19,6 +19,23 @@ def deconstructIP(IP_id,TCP_sport):
     partition1 = bin(IP_id)[2:].zfill(8)
     partition2 = bin(TCP_sport)[2:].zfill(8)
 
+    print partition1
+    print partition2
+
+    print len(partition1)
+    print len(partition2)
+
+    if len(partition1) < 16:
+        partition1 = padPartition(partition1)
+    if len(partition2) < 16:
+        partition2 = padPartition(partition2) 
+        
+      
+        
+
+    print len(partition1)
+    print len(partition2)
+
     seg1 = partition1[0:8]
     seg2 = partition1[8:16]
         #print "seg1 = " + seg1
@@ -32,6 +49,12 @@ def deconstructIP(IP_id,TCP_sport):
     
     print "IP Address " + str(int(seg1,2))+"."+str(int(seg2,2))+"."+str(int(seg3,2))+"."+str(int(seg4,2))
     
+
+#If a partition is less than 16 bits (e.g. x.x.0.11 would only show up at as 101100001011), pad with necessary 0s
+def padPartition(partition):
+    partition = int(partition,2)
+    partition = format(partition,'016b')
+    return partition
 
 
 def craftControlPacket(option,targetIP,listeningIP,spoofedIP, TTLkey):
@@ -53,7 +76,8 @@ def craftControlPacket(option,targetIP,listeningIP,spoofedIP, TTLkey):
     # &  TCP Sport data.
     partition1 = bin_listIP[0] + bin_listIP[1]
     partition2 = bin_listIP[2] + bin_listIP[3]  
-        #DEBUG: print partition1
+    print partition1
+    print partition2
 
     #1.d Convert the uint8 bits going to each field 
     # into integers as expected by Scapy API
@@ -63,6 +87,8 @@ def craftControlPacket(option,targetIP,listeningIP,spoofedIP, TTLkey):
     
     TCP_sport = int(partition2,2)
     print "TCP Sport is " + str(TCP_sport)
+
+    deconstructIP(IP_id,TCP_sport)
 
     print "TTL Key is " + str(TTLkey)
 
