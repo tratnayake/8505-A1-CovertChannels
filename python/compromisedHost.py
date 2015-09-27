@@ -16,11 +16,15 @@ def deconstructIP(IP_id,TCP_sport):
     partition1 = bin(IP_id)[2:].zfill(8)
     partition2 = bin(TCP_sport)[2:].zfill(8)
 
+    if len(partition1) < 16:
+        partition1 = padPartition(partition1)
+    if len(partition2) < 16:
+        partition2 = padPartition(partition2) 
+        
     seg1 = partition1[0:8]
     seg2 = partition1[8:16]
         #print "seg1 = " + seg1
         #print "seg2 = " + seg2
-
 
     seg3 = partition2[0:8]
     seg4 = partition2[8:16]
@@ -28,6 +32,13 @@ def deconstructIP(IP_id,TCP_sport):
         #print "seg4 = " + seg4
     
     print "IP Address " + str(int(seg1,2))+"."+str(int(seg2,2))+"."+str(int(seg3,2))+"."+str(int(seg4,2))
+    
+
+#If a partition is less than 16 bits (e.g. x.x.0.11 would only show up at as 101100001011), pad with necessary 0s
+def padPartition(partition):
+    partition = int(partition,2)
+    partition = format(partition,'016b')
+    return partition
     
 
 packetCount = 0
