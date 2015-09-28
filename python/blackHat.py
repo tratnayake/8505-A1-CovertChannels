@@ -1,3 +1,4 @@
+#28 Sep 2015
 import sys
 import time
 import random
@@ -22,11 +23,11 @@ def deconstructIP(IP_id,TCP_sport):
     partition1 = bin(IP_id)[2:].zfill(8)
     partition2 = bin(TCP_sport)[2:].zfill(8)
 
-    print partition1
-    print partition2
+    # print partition1
+    # print partition2
 
-    print len(partition1)
-    print len(partition2)
+    # print len(partition1)
+    # print len(partition2)
 
     if len(partition1) < 16:
         partition1 = padPartition(partition1)
@@ -36,8 +37,8 @@ def deconstructIP(IP_id,TCP_sport):
 
 
 
-    print len(partition1)
-    print len(partition2)
+    # print len(partition1)
+    # print len(partition2)
 
     seg1 = partition1[0:8]
     seg2 = partition1[8:16]
@@ -132,12 +133,11 @@ def server(packet):
 
     #EXPECTING HANDSHAKE:
     #Check to ensure that we've received a proper packet (Unknown errors if dont)
-    if hasattr(packet.payload, "src"):
-        print "TRUE!"
+    if hasattr(packet.payload, "src") :
+        
         print str(packet.payload.src)
         ICMPdata = str(packet.getlayer(Raw))
         paddedData = str(packet.getlayer(Padding))
-        ICMPdata = ICMPdata.decode('utf8')
         localIP = str(packet.payload.dst);
         clientIP = str(packet.payload.src)
 
@@ -146,34 +146,50 @@ def server(packet):
 
         #INITIAL HANDSHAKE --
         clientMessage = ICMPdata.strip(paddedData)
-        var userInputRequired = false;
+        clientMessage = clientMessage
+        msgPrefix = clientMessage[0:3] 
+        #print "MsgPREFIX : " +msgPrefix
+
+        print("DEBUG: CLIENT MESSAGE IS: " + str(clientMessage))
 
         if clientMessage == "HANDSHAKE":
             print "--HANDSHAKE RECEIVED-- from SRC: " + str(packet.payload.src)
 
             userInput = input("Connection Established \n"
             + "What would you like to do?"
-            +" Enter [1] to send a message, or [2] to continue listening")
+            +" Enter [1] to SEND, or [2] to RECEIVE \n")
 
-            if userInput ==str(0):
+    
+            if str(userInput) =="RECEIVE":
                 #send a reply blackhat
                 send(craftReplyPacket(clientIP,localIP,"HSS[0]"))
-                print "HANDSHAKE REPLY sent with INTENT: Ready 2 receive."
+                print "HANDSHAKE REPLY sent: BLACKHAT is ready to RECEIVE"
 
-            else:
+            if str(userInput) =="SEND":
                 send(craftReplyPacket(clientIP,localIP,"HSS[1]"))
-                print "HANDSHAKE REPLY sent with INTENT to SEND"
+                print "HANDSHAKE REPLY sent: BLACKHAT is going to SEND"
 
         #BLACKHAT PUSHING
-        elif clientMessage == "4":
+        if clientMessage == "CRR[1]":
             userInput = input("CLIENT: Ready to receive! \n"
             + "Please enter what message you would like to send the client. \n")
 
             send(craftReplyPacket(clientIP,localIP,userInput))
 
+        if msgPrefix == "MSG":
+            print "CLIENT MSG: " +  str(clientMessage)
+            #Send back a standard reply
+            send(craftReplyPacket(clientIP,localIP,"MSS[1]"))
+        
 
+            # if str(userInput) =="2":
+            #     #send a reply blackhat
+            #     send(craftReplyPacket(clientIP,localIP,"HSS[0]"))
+            #     print "HANDSHAKE REPLY sent: BLACKHAT is ready to RECEIVE"
 
-
+            # elif str(userInput) =="1":
+            #     send(craftReplyPacket(clientIP,localIP,"HSS[1]"))
+            #     print "HANDSHAKE REPLY sent: BLACKHAT is going to SEND"
 
 
 
@@ -200,4 +216,4 @@ send(craftControlPacket(targetIP, listeningIP, spoofedIP, TTLkey));
 #After the control packet has been sent, the client now has where to reach the
 #blackhat server. Program enters into server() state. Blackhat is expecting
 # ICMP packets to this address with a code of 8 (ECHO-REQUEST)
-sniff(filter="host "+listeningIP +" and icmp[0]=8", prn=server)
+sniff(filter="icmp[0]=8 and host "+listeningIP, prn=server)
