@@ -4,7 +4,7 @@ import random
 from scapy.all import *
 import socket
 import math
-
+global packetsArray
 #Maximum transmit size is 40 bytes
 MTU = 10
 ## Helper Functions
@@ -118,9 +118,13 @@ def encapsulateMessage(message,numPackets):
             if letterEnd < messageLength:
                 packetsArray.append(message[letterStart:letterEnd])
                 letter = letterEnd
+
             else:
                 packetsArray.append(message[letterStart:messageLength])
+                letter = messageLength
     print "Inside method " + str(packetsArray)
+
+    packetsArray = packetsArray
     return packetsArray;
 
 def server(packet):
@@ -142,6 +146,8 @@ def server(packet):
 
         #INITIAL HANDSHAKE --
         clientMessage = ICMPdata.strip(paddedData)
+        var userInputRequired = false;
+
         if clientMessage == "HANDSHAKE":
             print "--HANDSHAKE RECEIVED-- from SRC: " + str(packet.payload.src)
 
@@ -158,32 +164,17 @@ def server(packet):
                 send(craftReplyPacket(clientIP,localIP,"HSS[1]"))
                 print "HANDSHAKE REPLY sent with INTENT to SEND"
 
-        #Client is querying for number of messages?
+        #BLACKHAT PUSHING
         elif clientMessage == "4":
-            userInput = input("CLIENT: Query- Length of message? \n"
-            + "Please enter what message you would like to send the client.")
+            userInput = input("CLIENT: Ready to receive! \n"
+            + "Please enter what message you would like to send the client. \n")
 
-            #encapsulate the message here, get back packetarray
-            msgLength = len(str(userInput))
-            msgsRequired = (int(msgLength)/MTU) + (int(msgLength) % MTU > 0)
-            encapsulateMessage(userInput,msgsRequired)
-
-            print str(msgsRequired)
-            print "Msg length is " + str(msgLength) + ", MTU is " + str(MTU) + "& num msgs reqd is " + str(msgsRequired)
-
-            #Prepare the message
+            send(craftReplyPacket(clientIP,localIP,userInput))
 
 
-            #Answer client query: Numb of messages that will be required to facilitate transfer
-            send(craftReplyPacket(clientIP,localIP,str(msgsRequired)))
 
-        #BLACKHAT PUSHING --
-        elif str(clientMessage[0]) == "1":
 
-            msgData = re.search(r"\[([A-Za-z0-9_]+)\]", clientMessage);
-            msgNumber = msgData.group(1)
-            print "Client wants you to send message" + str(msgNumber)
-            #print packetsArray
+
 
 
 # ============================================ MAIN ========================== #
@@ -201,7 +192,7 @@ targetIP = sys.argv[1]
 listeningIP = sys.argv[2]
 spoofedIP = sys.argv[3]
 TTLkey = int(sys.argv[4])
-global packetsArray
+
 
 
 #Program start, blackhat wants to send a control packet to initialize connection.
