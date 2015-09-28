@@ -1,8 +1,11 @@
+#28 Sep 2015 0839
 import sys
 import time
 import random
 from scapy.all import *
 import socket
+from threading import Thread
+from time import sleep
 
 global blackhatIP
 
@@ -46,7 +49,7 @@ def padPartition(partition):
 packetCount = 0
 
 def craftPacket(blackhatIP,sequenceNum,message):
-    packet = IP(dst=blackhatIP)/ICMP(code=8, seq=sequenceNum)/message.encode("utf8")
+    packet = IP(dst=blackhatIP)/ICMP(code=8, seq=sequenceNum)/message
     return packet
 
 def decodeResponsePacket(packet):
@@ -80,15 +83,23 @@ def checkPackets(packet):
         if blackhatResponse == "HSS[1]":
             print "Blackhat wants to send!"
             #Query how many messages he has to send.
-            response = sr1(craftPacket(blackhatIP,1,"4"))
+            response = sr1(craftPacket(blackhatIP,1,"CRR[1]"))
 
             blackHatMessage = decodeResponsePacket(response)
             print "BLACKHAT: MESSAGE IS " + blackHatMessage
 
-            #Tell blackhat we're ready for more
-            craftPacket(blackhatIP,)
+        if blackhatResponse =="HSS[0]":
+            print 'Blackhat is ready to receive!'
 
+            user_input = input("Please enter what you would like to send in PARANTHESIS below \n")
+            response = sr1(craftPacket(blackhatIP,1,"MSG:" + user_input))
+            blackHatMessage = decodeResponsePacket(response)
+            print "BLACKHAT: MESSAGE IS " + blackHatMessage
 
+        if blackhatResponse =="MSS[1]":
+            print 'MESSAGE SEND WAS SUCCESSFUL!'
+           
+          
 
 #Main
 #Usage: SourceIP,TTL
